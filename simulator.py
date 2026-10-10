@@ -1,14 +1,21 @@
 """Fictional provisioning services and captured request/response evidence."""
 from __future__ import annotations
 
+import json
+import os
+import secrets
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 app = FastAPI(title="Provisioning Platform Simulator", version="1.0.0",
               description="Fictional Hosted/Premise order traces and downstream IPSM/ESP evidence.")
+SERVER_LOG_ROOT = Path(__file__).parent / "servers"
+server_basic_auth = HTTPBasic()
 
 FLOWS: list[dict[str, Any]] = [
     {
@@ -67,6 +74,58 @@ def health() -> dict[str, str]:
 @app.get("/applications")
 def applications() -> dict[str, Any]:
     return {"applications": ["OrderHub", "IPSM", "ESP"], "order_types": ["Hosted", "Premise"]}
+
+
+def authenticate_jenkins_reader(credentials: HTTPBasicCredentials = Depends(server_basic_auth)) -> str:
+    """Authenticate the Jenkins service account against a fictional host."""
+    expected_user = os.getenv("DUMMY_SERVER_USERNAME", "jenkins-reader")
+    expected_password = os.getenv("DUMMY_SERVER_PASSWORD", "demo-server-readonly")
+    valid_user = secrets.compare_digest(credentials.username, expected_user)
+    valid_password = secrets.compare_digest(credentials.password, expected_password)
+    if not (valid_user and valid_password):
+        raise HTTPException(status_code=401, detail="Dummy server rejected the Jenkins reader account",
+                            headers={"WWW-Authenticate": "Basic"})
+    return credentials.username
+
+
+@app.get("/servers")
+def list_servers() -> dict[str, Any]:
+    servers = sorted(path.name for path in SERVER_LOG_ROOT.iterdir() if path.is_dir())
+    return {"servers": servers, "auth": "HTTP Basic; read-only Jenkins demo account"}
+
+
+@app.get("/servers/{server_id}/logs")
+def pull_reference_logs(
+    server_id: str,
+    order_id: str | None = Query(default=None),
+    correlation_id: str | None = Query(default=None),
+    event_time: str | None = Query(default=None),
+    authenticated_as: str = Depends(authenticate_jenkins_reader),
+) -> dict[str, Any]:
+    """Return only this dummy server's on-disk JSONL evidence to an authenticated reader."""
+    if not server_id.replace("-", "").isalnum():
+        raise HTTPException(status_code=400, detail="Invalid server id")
+    log_path = SERVER_LOG_ROOT / server_id / "logs" / "reference.jsonl"
+    if not log_path.is_file():
+        raise HTTPException(status_code=404, detail="Dummy server not found")
+    entries: list[dict[str, Any]] = []
+    for line in log_path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        entry = json.loads(line)
+        if order_id and entry.get("order_id") != order_id:
+            continue
+        if correlation_id and entry.get("correlation_id") != correlation_id:
+            continue
+        entries.append(entry)
+    return {
+        "server": server_id,
+        "log_file": str(log_path.relative_to(Path(__file__).parent)),
+        "authenticated_as": authenticated_as,
+        "event_time_context": event_time,
+        "count": len(entries),
+        "logs": entries,
+    }
 
 @app.post("/trace")
 def trace(request: TraceRequest) -> dict[str, Any]:

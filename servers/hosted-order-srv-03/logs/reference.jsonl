@@ -1,0 +1,3 @@
+{"timestamp":"12:15:02.110","level":"INFO","service":"hosted-order-orchestrator","order_id":"ORD-59012","correlation_id":"corr-hosted-59012","message":"Accepted Hosted order ORD-59012; downstream deadline=2000 ms."}
+{"timestamp":"12:15:04.111","level":"ERROR","service":"hosted-order-orchestrator","order_id":"ORD-59012","correlation_id":"corr-hosted-59012","message":"Deadline exceeded waiting for IPSM after 2000 ms."}
+{"timestamp":"12:15:04.112","level":"WARN","service":"order-api","order_id":"ORD-59012","correlation_id":"corr-hosted-59012","message":"Returned 504 while IPSM allocation continued asynchronously."}

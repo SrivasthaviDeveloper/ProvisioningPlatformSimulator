@@ -1,0 +1,4 @@
+{"timestamp":"10:42:11.238","level":"INFO","service":"ip-allocation-service","order_id":"ORD-48291","correlation_id":"corr-hosted-48291","message":"Pool 172.24.18.0/24 checked; free addresses=0."}
+{"timestamp":"10:42:11.241","level":"ERROR","service":"ip-allocation-service","order_id":"ORD-48291","correlation_id":"corr-hosted-48291","message":"Allocation rejected with IP_POOL_EXHAUSTED."}
+{"timestamp":"12:15:02.128","level":"INFO","service":"ip-allocation-service","order_id":"ORD-59012","correlation_id":"corr-hosted-59012","message":"Allocation started for pool 10.88.4.0/24."}
+{"timestamp":"12:15:04.566","level":"INFO","service":"ip-allocation-service","order_id":"ORD-59012","correlation_id":"corr-hosted-59012","message":"Allocation completed after 2438 ms; address 10.88.4.27 reserved."}

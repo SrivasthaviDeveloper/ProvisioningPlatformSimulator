@@ -1,0 +1,2 @@
+{"timestamp":"11:08:40.019","level":"INFO","service":"credential-broker","order_id":"ORD-73106","correlation_id":"corr-prem-73106","message":"Validating demo service identity for premise-site-agent."}
+{"timestamp":"11:08:40.024","level":"ERROR","service":"credential-broker","order_id":"ORD-73106","correlation_id":"corr-prem-73106","message":"INVALID_AUDIENCE; expected premise-provisioning-demo."}

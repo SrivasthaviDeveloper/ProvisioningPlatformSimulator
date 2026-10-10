@@ -1,0 +1,2 @@
+{"timestamp":"11:08:40.004","level":"INFO","service":"premise-site-agent","order_id":"ORD-73106","correlation_id":"corr-prem-73106","message":"Received Premise activation order ORD-73106 for SITE-0198."}
+{"timestamp":"11:08:40.027","level":"WARN","service":"premise-site-agent","order_id":"ORD-73106","correlation_id":"corr-prem-73106","message":"Activation rejected by ESP with HTTP 401; order remains FAILED."}
