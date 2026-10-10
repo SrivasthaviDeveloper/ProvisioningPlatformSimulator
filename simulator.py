@@ -13,6 +13,7 @@ app = FastAPI(title="Provisioning Platform Simulator", version="1.0.0",
 FLOWS: list[dict[str, Any]] = [
     {
         "application": "OrderHub", "order_type": "Hosted", "order_id": "ORD-48291",
+        "correlation_id": "corr-hosted-48291",
         "error_terms": ["ip", "address", "allocation", "ipsm", "pool", "409"],
         "server": "hosted-order-srv-01", "microservice": "hosted-order-orchestrator",
         "downstream": "IPSM", "downstream_service": "ip-allocation-service", "status": "FAILED",
@@ -26,6 +27,7 @@ FLOWS: list[dict[str, Any]] = [
     },
     {
         "application": "OrderHub", "order_type": "Premise", "order_id": "ORD-73106",
+        "correlation_id": "corr-prem-73106",
         "error_terms": ["credential", "unauthorized", "401", "esp", "token", "auth"],
         "server": "premise-order-srv-02", "microservice": "premise-site-agent", "downstream": "ESP", "downstream_service": "credential-broker", "status": "FAILED",
         "cause": "ESP rejected the premise site's service identity because its demo token audience did not match the premise provisioning API. The site agent returned HTTP 401.",
@@ -38,6 +40,7 @@ FLOWS: list[dict[str, Any]] = [
     },
     {
         "application": "OrderHub", "order_type": "Hosted", "order_id": "ORD-59012",
+        "correlation_id": "corr-hosted-59012",
         "error_terms": ["timeout", "timed out", "504", "deadline", "slow"],
         "server": "hosted-order-srv-03", "microservice": "hosted-order-orchestrator", "downstream": "IPSM", "downstream_service": "ip-allocation-service", "status": "DEGRADED",
         "cause": "The orchestration request timed out while waiting on the simulated IPSM allocation call. Evidence shows IPSM responded after the caller's 2-second deadline.",
@@ -55,6 +58,7 @@ class TraceRequest(BaseModel):
     error: str = Field(min_length=1, max_length=2000)
     event_time: str | None = None
     order_id: str | None = None
+    correlation_id: str | None = None
 
 @app.get("/health")
 def health() -> dict[str, str]:
@@ -69,8 +73,16 @@ def trace(request: TraceRequest) -> dict[str, Any]:
     text = request.error.lower()
     candidates = [f for f in FLOWS if request.application.lower() in
                   (f["application"].lower(), f["downstream"].lower())]
+    if not candidates:
+        candidates = list(FLOWS)
     if request.order_id:
-        candidates.sort(key=lambda f: f["order_id"].lower() != request.order_id.lower())
+        matches = [f for f in candidates if f["order_id"].lower() == request.order_id.lower()]
+        if matches:
+            candidates = matches
+    if request.correlation_id:
+        matches = [f for f in candidates if f["correlation_id"].lower() == request.correlation_id.lower()]
+        if matches:
+            candidates = matches
     ranked = sorted(candidates, key=lambda f: sum(term in text for term in f["error_terms"]), reverse=True)
     flow = ranked[0] if ranked else FLOWS[0]
     confidence = "high" if sum(term in text for term in flow["error_terms"]) >= 2 else "medium"
